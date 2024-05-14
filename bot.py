@@ -17,7 +17,10 @@ warnings.filterwarnings('ignore')
 bot = telebot.TeleBot(BOT_TOKEN)
 bot_active = True
 USER_SESSIONS = {}
-
+if not os.path.exists("photos"):
+    os.makedirs("photos")
+if not os.path.exists("videos"):
+    os.makedirs("videos")
 
 # ------------------------------------------------------------------------------------------ #
 @bot.message_handler(func=lambda message: message.chat.id not in USER_SESSIONS)
@@ -32,7 +35,7 @@ def add_new_user(message):
     USER_SESSIONS[message.chat.id]["dialogue"] = [INSTRUCTION]
     user_name = message.from_user.first_name
     if message.chat.type == 'private':
-        bot.send_message(message.chat.id, f"Chào {user_name}, tôi có thể giúp gì cho bạn? \n{GREETING}")
+        bot.send_message(message.chat.id, f"Chào {user_name} 🤗, {GREETING}")
     else:
         pass
 
@@ -42,7 +45,7 @@ def refuse_reply(message):
     user_session = USER_SESSIONS[message.chat.id]
     if user_session["active"]:
         if message.chat.type == 'private':
-            bot.reply_to(message, "Vui lòng nhập văn bản")
+            bot.reply_to(message, "Vui lòng nhập văn bản 🥺")
         else:
             pass
 
@@ -50,10 +53,6 @@ def refuse_reply(message):
 def process_photo(message):
     global USER_SESSIONS
     user_session = USER_SESSIONS[message.chat.id]
-    if not os.path.exists("photos"):
-        os.makedirs("photos")
-    if not os.path.exists("object_detection_results"):
-        os.makedirs("object_detection_results")
     if user_session["active"]:
         if message.chat.type == 'private':
             fileID = message.photo[-1].file_id
@@ -64,9 +63,10 @@ def process_photo(message):
                 new_file.write(bot.download_file(file_info.file_path))
             if user_session["features"]["/obj_det"]["state"]:
                 bot.send_message(message.chat.id, "I'm trying to find something in your image, be patient...")
-                detect_objects(local_image_path, os.path.join("object_detection_results", image_name))
-                photo = open(os.path.join("object_detection_results", image_name), "rb")
+                detect_objects(local_image_path, f"photos/def_{message.chat.id}_{image_name}")
+                photo = open(f"photos/def_{message.chat.id}_{image_name}", "rb")
                 bot.send_photo(message.chat.id, photo)
+                os.remove(f"photos/def_{message.chat.id}_{image_name}")
                 bot.send_message(message.chat.id, "Object detector is deactivated. Type /obj_det to reactivate it")
                 user_session["features"]["/obj_det"]["state"] = False
             else:
@@ -84,15 +84,15 @@ def handle_active_bot(message):
     if message.text.lower() in user_session['features'].keys():
         user_session['features'][message.text.lower()]['state'] = True
         if user_session["features"]["/imgen"]["state"]: # if TonDiffusion is activated
-            bot.send_message(message.chat.id, "Describe the image you want to generate!")
+            bot.send_message(message.chat.id, "Describe the image you want to generate")
         elif user_session["features"]["/vidgen"]["state"]: # if TonDiffusion is activated
-            bot.send_message(message.chat.id, "Describe the video you want to generate!")
+            bot.send_message(message.chat.id, "Describe the video you want to generate")
         elif user_session["features"]["/obj_det"]["state"]:
             bot.send_message(message.chat.id, "Gimme an image")
         return
     
     if user_session['active']:
-        if len(user_session["dialogue"]) > LIMITATION:
+        if len(user_session["dialogue"]) > LIMITATION or message.text.lower() == "/reset":
             user_session["dialogue"] = [INSTRUCTION]
         
         if user_session["features"]["/imgen"]["state"]:
@@ -122,7 +122,7 @@ def handle_active_bot(message):
                 bot.send_message(message.chat.id, "I've done. Type /imgen to generate more images")
                 return
             else:
-                bot.send_message(message.chat.id, "I get overloaded. Try it later")
+                bot.send_message(message.chat.id, "I get overloaded. Try it later 🥺")
                 return
             
         if user_session["features"]["/vidgen"]["state"]:
@@ -141,9 +141,10 @@ def handle_active_bot(message):
                 export_to_video(video_frames, video_path)
                 bot.send_video(chat_id=chat_id, video=open(video_path, 'rb'), supports_streaming=True)
                 bot.send_message(message.chat.id, "I've done. Type /vidgen to generate more videos")
+                os.remove(video_path)
                 return
             else:
-                bot.send_message(message.chat.id, "I get overloaded. Try it later")
+                bot.send_message(message.chat.id, "I get overloaded. Try it later 🥺")
                 return
 
         if message.chat.type == 'private':
