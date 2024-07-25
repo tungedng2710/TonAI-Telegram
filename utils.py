@@ -4,25 +4,27 @@ import torch
 from diffusers import StableDiffusionPipeline, DPMSolverMultistepScheduler, DiffusionPipeline
 from bs4 import BeautifulSoup
 from newspaper import Article
-from configs import TEXT2IMG_MODEL_ID, TEXT2VID_MODEL_ID, DIFFUSION_PIPELINES_GPU, DIFFUSION_PIPELINES_CPU
+from configs import TEXT2IMG_MODEL_ID, TEXT2VID_MODEL_ID, DIFFUSION_PIPELINES_GPU, DIFFUSION_PIPELINES_CPU, NEGATIVE_PROMPT
 
-DEVICE = "cuda:1"
+DEVICE = "cuda:0"
 VIDGEN_DIFFUSION_PIPELINES = []
 DIFFUSION_PIPELINES = []
-for i in range(DIFFUSION_PIPELINES_GPU):
-    pipe = StableDiffusionPipeline.from_pretrained(TEXT2IMG_MODEL_ID)
-    pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
-    try:
-        pipe = pipe.to(DEVICE)
-        pipeline_dict = {"generator": pipe, "is_available": True, "gpu": True}
-    except Exception as e:
+if DIFFUSION_PIPELINES_GPU > 0:
+    for i in range(DIFFUSION_PIPELINES_GPU):
+        pipe = StableDiffusionPipeline.from_single_file(TEXT2IMG_MODEL_ID)
+        pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
+        try:
+            pipe = pipe.to(DEVICE)
+            pipeline_dict = {"generator": pipe, "is_available": True, "gpu": True}
+        except Exception as e:
+            pipeline_dict = {"generator": pipe, "is_available": True, "gpu": False}
+        DIFFUSION_PIPELINES.append(pipeline_dict)
+if DIFFUSION_PIPELINES_CPU > 0:
+    for i in range(DIFFUSION_PIPELINES_CPU):
+        pipe = StableDiffusionPipeline.from_single_file(TEXT2IMG_MODEL_ID, torch_dtype=torch.float16)
+        pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
         pipeline_dict = {"generator": pipe, "is_available": True, "gpu": False}
-    DIFFUSION_PIPELINES.append(pipeline_dict)
-for i in range(DIFFUSION_PIPELINES_CPU):
-    pipe = StableDiffusionPipeline.from_pretrained(TEXT2IMG_MODEL_ID, torch_dtype=torch.float16)
-    pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
-    pipeline_dict = {"generator": pipe, "is_available": True, "gpu": False}
-    DIFFUSION_PIPELINES.append(pipeline_dict)
+        DIFFUSION_PIPELINES.append(pipeline_dict)
 
 # for i in range(2):
 #     vidgen_pipe = DiffusionPipeline.from_pretrained("damo-vilab/text-to-video-ms-1.7b", 
@@ -38,17 +40,25 @@ print(f"Num imgen pipelines: {len(DIFFUSION_PIPELINES)}")
 def complete(messages, model_names, client):
     for model_name in model_names:
         try:
-            response = client.chat.completions.create(model=model_name,messages=messages)
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=messages
+            )
             output = response.choices[0].message.content
             break
         except Exception as e:
             print(e)
-            output = "TonAI is temporarily down"
+            output = "TonAI is temporarily down 🥺"
             continue
     return output
 
 def gen_image(prompt, pipe):
-    image = pipe(prompt).images[0]
+    image = pipe(prompt=prompt, 
+                 width=768, 
+                 height=768, 
+                 num_inference_steps=20,
+                 negative_prompt=NEGATIVE_PROMPT,
+                 guidance_scale=2).images[0]
     return image
 
 def gen_video(prompt, num_frames=50, device_id=0):

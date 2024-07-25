@@ -16,6 +16,7 @@ warnings.filterwarnings('ignore')
 
 bot = telebot.TeleBot(BOT_TOKEN)
 bot_active = True
+client = Client()
 USER_SESSIONS = {}
 if not os.path.exists("photos"):
     os.makedirs("photos")
@@ -72,14 +73,14 @@ def process_photo(message):
             else:
                 bot.reply_to(message, GREETING)
         else:
-            bot.reply_to(message, "Vui lòng nhập văn bản")
+            pass
+            # bot.reply_to(message, "Vui lòng nhập văn bản")
 
 # ------------------------------------------------------------------------------------------ #
 @bot.message_handler(func=lambda message: USER_SESSIONS[message.chat.id]["active"])
 def handle_active_bot(message):
     global USER_SESSIONS
     global DIFFUSION_PIPELINES
-    client = Client()
     user_session = USER_SESSIONS[message.chat.id]
     if message.text.lower() in user_session['features'].keys():
         user_session['features'][message.text.lower()]['state'] = True
@@ -93,7 +94,8 @@ def handle_active_bot(message):
     
     if user_session['active']:
         if len(user_session["dialogue"]) > LIMITATION or message.text.lower() == "/reset":
-            user_session["dialogue"] = [INSTRUCTION]
+            user_session["dialogue"] = user_session["dialogue"][-LIMITATION:]
+            user_session["dialogue"][0] = INSTRUCTION
         
         if user_session["features"]["/imgen"]["state"]:
             chat_id = message.chat.id
@@ -146,7 +148,6 @@ def handle_active_bot(message):
             else:
                 bot.send_message(message.chat.id, "I get overloaded. Try it later 🥺")
                 return
-
         if message.chat.type == 'private':
             chat_id = message.chat.id
             input_text = message.text
