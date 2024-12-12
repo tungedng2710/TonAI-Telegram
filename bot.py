@@ -2,8 +2,7 @@ import os
 import telebot
 import warnings
 from configs import BOT_TOKEN, BOT_USERNAME, GREETING, LIMITATION
-from utils import complete, gen_image, gen_video
-
+from utils import complete
 warnings.filterwarnings('ignore')
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -19,11 +18,7 @@ if not os.path.exists("videos"):
 def add_new_user(message):
     global USER_SESSIONS
     USER_SESSIONS[message.chat.id] = {"active": True}  # Initialize user session
-    USER_SESSIONS[message.chat.id]["features"] = {
-        "/obj_det": {"name": "Object detection", "state": False},
-        "/imgen": {"name": "TonAI text to image", "state": False, "prompt": ""},
-        "/vidgen": {"name": "TonAI text to video", "state": False, "prompt": ""}
-    }
+    USER_SESSIONS[message.chat.id]["dialogue"] = []
     user_name = message.from_user.first_name
     if message.chat.type == 'private':
         bot.send_message(message.chat.id, f"Hi {user_name} 🤗, {GREETING}")
@@ -32,13 +27,6 @@ def add_new_user(message):
 
 @bot.message_handler(content_types=['sticker', 'audio', 'photo'])
 def refuse_reply(message):
-    # global USER_SESSIONS
-    # user_session = USER_SESSIONS[message.chat.id]
-    # if user_session["active"]:
-    #     if message.chat.type == 'private':
-    #         bot.reply_to(message, "Vui lòng nhập văn bản 🥺")
-    #     else:
-    #         pass
     pass
 
 # ------------------------------------------------------------------------------------------ #
@@ -47,25 +35,10 @@ def handle_active_bot(message):
     global USER_SESSIONS
     global DIFFUSION_PIPELINES
     user_session = USER_SESSIONS[message.chat.id]
-    # if message.text.lower() in user_session['features'].keys():
-    #     user_session['features'][message.text.lower()]['state'] = True
-    #     if user_session["features"]["/imgen"]["state"]: # if TonDiffusion is activated
-    #         bot.send_message(message.chat.id, "Describe the image you want to generate")
-    #     elif user_session["features"]["/vidgen"]["state"]: # if TonDiffusion is activated
-    #         bot.send_message(message.chat.id, "Describe the video you want to generate")
-    #     elif user_session["features"]["/obj_det"]["state"]:
-    #         bot.send_message(message.chat.id, "Gimme an image")
-    #     return
     
     if user_session['active']:
         if len(user_session["dialogue"]) > LIMITATION or message.text.lower() == "/reset":
             user_session["dialogue"] = user_session["dialogue"][-LIMITATION:]
-        
-        if user_session["features"]["/imgen"]["state"]:
-            pass
-            
-        if user_session["features"]["/vidgen"]["state"]:
-            pass
 
         if message.chat.type == 'private':
             chat_id = message.chat.id
