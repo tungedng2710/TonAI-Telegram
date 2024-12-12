@@ -1,0 +1,4 @@
+telebot
+ollama
+ultralytics
+transformers

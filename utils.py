@@ -1,5 +1,4 @@
 import ollama
-
 from configs import MODEL_ID
 
 
