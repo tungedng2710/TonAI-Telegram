@@ -161,3 +161,4 @@ cython_debug/
 photos/*
 videos/*
 bot_token.txt
+configs.py
