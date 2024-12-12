@@ -18,7 +18,7 @@ If you are using Linux, run the command
 ```
 curl -fsSL https://ollama.com/install.sh | sh
 ```
-After install Ollama, start the Ollama service
+After installing Ollama, start the Ollama service
 ```
 ollama serve
 ```
