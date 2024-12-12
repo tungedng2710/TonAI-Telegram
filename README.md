@@ -29,6 +29,8 @@ Ollama will run on default port `11434`. If you want more advanced configs, plea
 Coming soon
 
 ## Run
+**NOTE:** I cannot upload the `BOT_TOKEN`, so you have to replace the `BOT_TOKEN` infomation in this code with your own Telegram bot token. If you don't know how to create a Telegram bot, visit this [Tutorial website](https://core.telegram.org/bots/tutorial)
+
 Just run the Python code
 ```
 python run bot.py
