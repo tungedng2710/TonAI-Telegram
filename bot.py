@@ -45,9 +45,10 @@ def add_image(message):
     file_path = os.path.join(user_stuffs_path, 'temp.jpg')
     with open(file_path, 'wb') as new_file:
         new_file.write(downloaded_file)
-    user_session["dialogue"].append({"role": "user", 
-                                     "content": "",
-                                     "images": None})
+    user_session["dialogue"].append({"role": "user", "content": [
+                    {"type": "image"},
+                    {"type": "text", "text": "If I had to write a haiku for this one, it would be: "}
+                ]})
 
 
 @bot.message_handler(func=lambda message: USER_SESSIONS[message.chat.id]["active"])
