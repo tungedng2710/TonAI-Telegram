@@ -13,6 +13,7 @@ if not os.path.exists("photos"):
 if not os.path.exists("videos"):
     os.makedirs("videos")
 
+
 # ------------------------------------------------------------------------------------------ #
 @bot.message_handler(func=lambda message: message.chat.id not in USER_SESSIONS)
 def add_new_user(message):
@@ -25,15 +26,33 @@ def add_new_user(message):
     else:
         pass
 
-@bot.message_handler(content_types=['sticker', 'audio', 'photo'])
+
+@bot.message_handler(content_types=['sticker', 'audio'])
 def refuse_reply(message):
     pass
 
-# ------------------------------------------------------------------------------------------ #
+
+@bot.message_handler(content_types=['photo'])
+def add_image(message):
+    global USER_SESSIONS
+    user_session = USER_SESSIONS[message.chat.id]
+    user_stuffs_path = f"stuffs/user_{message.chat.id}"
+    if not os.path.exists(user_stuffs_path):
+        os.makedirs(user_stuffs_path)
+    photo = message.photo[-1]
+    file_info = bot.get_file(photo.file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+    file_path = os.path.join(user_stuffs_path, 'temp.jpg')
+    with open(file_path, 'wb') as new_file:
+        new_file.write(downloaded_file)
+    user_session["dialogue"].append({"role": "user", 
+                                     "content": "",
+                                     "images": None})
+
+
 @bot.message_handler(func=lambda message: USER_SESSIONS[message.chat.id]["active"])
 def handle_active_bot(message):
     global USER_SESSIONS
-    global DIFFUSION_PIPELINES
     user_session = USER_SESSIONS[message.chat.id]
     
     if user_session['active']:
