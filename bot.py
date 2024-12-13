@@ -56,16 +56,19 @@ def handle_active_bot(message):
     user_session = USER_SESSIONS[message.chat.id]
     
     if user_session['active']:
-        if len(user_session["dialogue"]) > LIMITATION or message.text.lower() == "/reset":
+        if len(user_session["dialogue"]) > LIMITATION:
             user_session["dialogue"] = user_session["dialogue"][-LIMITATION:]
 
         if message.chat.type == 'private':
-            chat_id = message.chat.id
-            input_text = message.text
-            user_session["dialogue"].append({"role": "user", "content": input_text})
-            output = complete(user_session["dialogue"])
-            user_session["dialogue"].append({"role": "assistant", "content": output})
-            bot.send_message(chat_id, output)
+            if message.text.lower() == "/reset":
+                user_session["dialogue"] = []
+            else:
+                chat_id = message.chat.id
+                input_text = message.text
+                user_session["dialogue"].append({"role": "user", "content": input_text})
+                output = complete(user_session["dialogue"])
+                user_session["dialogue"].append({"role": "assistant", "content": output})
+                bot.send_message(chat_id, output)
         else:
             if f"@{BOT_USERNAME}" in message.text:
                 input_text = message.text.replace(f"@{BOT_USERNAME}", "")
