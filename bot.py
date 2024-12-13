@@ -1,19 +1,21 @@
 import os
 import telebot
 import warnings
-from configs import BOT_TOKEN, BOT_USERNAME, GREETING, LIMITATION
-from utils import complete
+from configs import *
+from utils import complete, encode_image_to_base64, check_ollama_model
 warnings.filterwarnings('ignore')
 
+
+# ------------------------------------------------------------------------------------------ #
 bot = telebot.TeleBot(BOT_TOKEN)
 bot_active = True
 USER_SESSIONS = {}
-if not os.path.exists("photos"):
-    os.makedirs("photos")
-if not os.path.exists("videos"):
-    os.makedirs("videos")
-
-
+if not check_ollama_model(MODEL_ID):
+    print(f"Opp!, you have no Ollama model named {MODEL_ID}! Please pull or create it")
+    exit()
+else:
+    print(f"Bot will run with Ollama model: [{MODEL_ID}]")
+    
 # ------------------------------------------------------------------------------------------ #
 @bot.message_handler(func=lambda message: message.chat.id not in USER_SESSIONS)
 def add_new_user(message):
@@ -45,10 +47,13 @@ def add_image(message):
     file_path = os.path.join(user_stuffs_path, 'temp.jpg')
     with open(file_path, 'wb') as new_file:
         new_file.write(downloaded_file)
-    user_session["dialogue"].append({"role": "user", "content": [
-                    {"type": "image"},
-                    {"type": "text", "text": "If I had to write a haiku for this one, it would be: "}
-                ]})
+    base64_image = encode_image_to_base64(file_path)
+    user_session["dialogue"].append({
+                    "role": "user",
+                    "content": "",
+                    "images": [base64_image],
+                })
+    os.remove(file_path)
 
 
 @bot.message_handler(func=lambda message: USER_SESSIONS[message.chat.id]["active"])
@@ -71,7 +76,7 @@ def handle_active_bot(message):
                 user_session["dialogue"].append({"role": "assistant", "content": output})
                 bot.send_message(chat_id, output)
         else:
-            if f"@{BOT_USERNAME}" in message.text:
+            if f"@{BOT_USERNAME}" in message.text: # Recognize if
                 input_text = message.text.replace(f"@{BOT_USERNAME}", "")
                 user_session["dialogue"].append({"role": "user", "content": input_text})
                 output = complete(user_session["dialogue"])
