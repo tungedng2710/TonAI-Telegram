@@ -1,6 +1,6 @@
 # TonAI Telegram Bot
 
-TonAI Chatbot as a Telegram bot
+**Telegram bot with Ollama and ComfyUI**
 
 ## Setup
 Clone this repository and move to it
