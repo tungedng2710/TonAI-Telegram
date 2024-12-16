@@ -5,10 +5,8 @@ from configs import *
 from utils import complete, encode_image_to_base64, check_ollama_model
 warnings.filterwarnings('ignore')
 
-
 # ------------------------------------------------------------------------------------------ #
 bot = telebot.TeleBot(BOT_TOKEN)
-bot_active = True
 USER_SESSIONS = {}
 if not check_ollama_model(MODEL_ID):
     print(f"Opp!, you have no Ollama model named {MODEL_ID}! Please pull or create it")
@@ -16,22 +14,62 @@ if not check_ollama_model(MODEL_ID):
 else:
     print(f"Bot will run with Ollama model: [{MODEL_ID}]")
     
+    
+def do_nothing(**kwargs):
+    pass
+    
 # ------------------------------------------------------------------------------------------ #
 @bot.message_handler(func=lambda message: message.chat.id not in USER_SESSIONS)
 def add_new_user(message):
     global USER_SESSIONS
-    USER_SESSIONS[message.chat.id] = {"active": True}  # Initialize user session
+    USER_SESSIONS[message.chat.id] = {"active": True,
+                                      "features": {
+                                          "ovd": False,
+                                          "gen_image": False
+                                          }
+                                      }
     USER_SESSIONS[message.chat.id]["dialogue"] = []
-    user_name = message.from_user.first_name
     if message.chat.type == 'private':
-        bot.send_message(message.chat.id, f"Hi {user_name} 🤗, {GREETING}")
+        bot.send_message(message.chat.id, f"Hi {message.from_user.first_name} 🤗")
+
+
+@bot.message_handler(commands=['reset'])
+def reset(message):
+    chat_id = message.chat.id  # Get the chat ID
+    if chat_id in USER_SESSIONS:
+        USER_SESSIONS.pop(chat_id)  # Remove the chat ID from the dictionary
+        bot.reply_to(message, "Your session has been reset.")
     else:
-        pass
+        bot.reply_to(message, "No active session found to reset.")
+        
+        
+@bot.message_handler(commands=['ovd'])
+def trigger_ovd(message):
+    USER_SESSIONS[message.chat.id]["features"]["ovd"] = True
+    
 
+@bot.message_handler(commands=['gen_image'])
+def trigger_image_generator(message):
+    USER_SESSIONS[message.chat.id]["features"]["gen_image"] = True
+    bot.reply_to(message, "Image generator is not available")
+    
 
-@bot.message_handler(content_types=['sticker', 'audio'])
-def refuse_reply(message):
+@bot.message_handler(content_types=['audio'])
+def do_nothing():
     pass
+
+
+@bot.message_handler(content_types=['sticker'])
+def handle_sticker(message):
+    global USER_SESSIONS
+    user_session = USER_SESSIONS[message.chat.id]
+    if user_session['active'] and message.chat.type == 'private':
+        sticker = message.sticker
+        if sticker.emoji:
+            user_session["dialogue"].append({"role": "user", "content": sticker.emoji})
+            output = complete(user_session["dialogue"])
+            user_session["dialogue"].append({"role": "assistant", "content": output})
+            bot.reply_to(message, output)
 
 
 @bot.message_handler(content_types=['photo'])
@@ -66,24 +104,19 @@ def handle_active_bot(message):
             user_session["dialogue"] = user_session["dialogue"][-LIMITATION:]
 
         if message.chat.type == 'private':
-            if message.text.lower() == "/reset":
-                user_session["dialogue"] = []
-            else:
-                chat_id = message.chat.id
-                input_text = message.text
-                user_session["dialogue"].append({"role": "user", "content": input_text})
-                output = complete(user_session["dialogue"])
-                user_session["dialogue"].append({"role": "assistant", "content": output})
-                bot.send_message(chat_id, output)
+            chat_id = message.chat.id
+            input_text = message.text
+            user_session["dialogue"].append({"role": "user", "content": input_text})
+            output = complete(user_session["dialogue"])
+            user_session["dialogue"].append({"role": "assistant", "content": output})
+            bot.send_message(chat_id, output)
         else:
-            if f"@{BOT_USERNAME}" in message.text: # Recognize if
+            if f"@{BOT_USERNAME}" in message.text: # Recognize if bot is tagged
                 input_text = message.text.replace(f"@{BOT_USERNAME}", "")
                 user_session["dialogue"].append({"role": "user", "content": input_text})
                 output = complete(user_session["dialogue"])
                 user_session["dialogue"].append({"role": "assistant", "content": output})
                 bot.reply_to(message, output)
-            else:
-                pass
             
 
 # ------------------------------------------------------------------------------------------ #
