@@ -3,12 +3,16 @@
 
 import websocket #NOTE: websocket-client (https://github.com/websocket-client/websocket-client)
 import uuid
+import random
 import json
 import urllib.request
 import urllib.parse
 import json
+import argparse
 
-server_address = "0.0.0.0:7866"
+
+server_address = "0.0.0.0:7865"
+# server_address = "116.103.227.252:7865"
 client_id = str(uuid.uuid4())
 
 def queue_prompt(prompt):
@@ -56,28 +60,29 @@ def get_images(ws, prompt):
 
     return output_images
 
-def query_sd35(ckpt_name: str = "sd3.5_medium.safetensors",
+def query_sd35(ckpt_name: str = "sd3.5_medium_incl_clips_t5xxlfp8scaled.safetensors",
                prompt: str = "a capybara",
                negative_prompt: str = "ugly, disfigured, deformed",
-               width: int = 1024,
-               height: int = 1024,
+               width: int = 768,
+               height: int = 768,
                batch_size: int = 1,
-               seed: int = 77498386,
+               seed: int = random.randint(0, 999999999999999),
                cfg: float = 3.0,
-               step: int = 20):
+               step: int = 20,
+               saved_path: str = "./temp.jpg"):
     
-    with open('stuffs/comfyui_workflow_api/sd3_5_workflow_api.json') as f:
+    with open('stuffs/sd3_5_workflow_api.json') as f:
         prompt_config = json.load(f)
 
     prompt_config["3"]["inputs"]["seed"] = seed
     prompt_config["3"]["inputs"]["cfg"] = cfg
     prompt_config["3"]["inputs"]["step"] = step
     prompt_config["4"]["inputs"]["ckpt_name"] = ckpt_name
-    prompt_config["16"]["inputs"]["text"] = prompt
-    prompt_config["40"]["inputs"]["text"] = negative_prompt
-    prompt_config["53"]["inputs"]["width"] = width
-    prompt_config["53"]["inputs"]["height"] = height
-    prompt_config["53"]["inputs"]["batch_size"] = batch_size
+    prompt_config["6"]["inputs"]["text"] = prompt
+    prompt_config["7"]["inputs"]["text"] = negative_prompt
+    prompt_config["5"]["inputs"]["width"] = width
+    prompt_config["5"]["inputs"]["height"] = height
+    prompt_config["5"]["inputs"]["batch_size"] = batch_size
 
     ws = websocket.WebSocket()
     ws.connect("ws://{}/ws?clientId={}".format(server_address, client_id))
@@ -91,7 +96,19 @@ def query_sd35(ckpt_name: str = "sd3.5_medium.safetensors",
             from PIL import Image
             import io
             output_images.append(Image.open(io.BytesIO(image_data)))
+    output_images[0].save(saved_path)
     return output_images
 
 
-# query_sd35(prompt="a cat")
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run SD3.5 API query and save output image.")
+    parser.add_argument("--saved_path", type=str, default="./temp.jpg", 
+                        help="Path to save the generated image. Default is './temp.jpg'.")
+    parser.add_argument("--prompt", type=str, default="a cat", 
+                        help="Prompt for image generation")
+
+    args = parser.parse_args()
+
+    # Call the query function with the user-defined saved_path
+    query_sd35(prompt=args.prompt,
+               saved_path=args.saved_path)

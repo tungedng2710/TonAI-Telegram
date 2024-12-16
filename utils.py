@@ -1,5 +1,6 @@
 import base64
 import ollama
+import subprocess
 from configs import MODEL_ID
 
 
@@ -43,8 +44,17 @@ def complete(messages):
         output = "TonAI is temporarily down 🥺"
     return output
 
-def gen_image(prompt, pipe):
-    pass
+def gen_image(prompt, chat_id):
+    command = [
+        "python",           # Python interpreter
+        "features/query_comfyui.py",         # The script you want to run
+        "--prompt", f"'{prompt}'",          # The prompt argument
+        "--saved_path", f"stuffs/{chat_id}_temp.jpg"    # The saved path argument
+    ]
+    try:
+        subprocess.run(command, capture_output=True, text=True)
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 def gen_video(prompt, num_frames=50, device_id=0):
     pass
