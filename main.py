@@ -15,9 +15,6 @@ else:
     print(f"Bot will run with Ollama model: [{MODEL_ID}]")
     
     
-def do_nothing(**kwargs):
-    pass
-    
 # ------------------------------------------------------------------------------------------ #
 @bot.message_handler(func=lambda message: message.chat.id not in USER_SESSIONS)
 def add_new_user(message):
@@ -35,17 +32,17 @@ def add_new_user(message):
 
 @bot.message_handler(commands=['reset'])
 def reset(message):
+    global USER_SESSIONS
     chat_id = message.chat.id  # Get the chat ID
     if chat_id in USER_SESSIONS:
         USER_SESSIONS.pop(chat_id)  # Remove the chat ID from the dictionary
         bot.reply_to(message, "Your session has been reset.")
-    else:
-        bot.reply_to(message, "No active session found to reset.")
         
         
 @bot.message_handler(commands=['ovd'])
 def trigger_ovd(message):
-    USER_SESSIONS[message.chat.id]["features"]["ovd"] = True
+    # USER_SESSIONS[message.chat.id]["features"]["ovd"] = True
+    bot.reply_to(message, "Sorry this feature is not available now!")
     
 
 @bot.message_handler(commands=['gen_image'])

@@ -66,8 +66,8 @@ def query_sd35(ckpt_name: str = "sd3.5_medium_incl_clips_t5xxlfp8scaled.safetens
                height: int = 768,
                batch_size: int = 1,
                seed: int = random.randint(0, 999999999999999),
-               cfg: float = 3.0,
-               step: int = 20,
+               cfg: float = 3.5,
+               step: int = 25,
                saved_path: str = "./temp.jpg"):
     
     with open('stuffs/sd3_5_workflow_api.json') as f:
