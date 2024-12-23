@@ -11,7 +11,7 @@ import json
 import argparse
 
 
-server_address = "0.0.0.0:7865"
+server_address = "0.0.0.0:7866"
 client_id = str(uuid.uuid4())
 
 def queue_prompt(prompt):
